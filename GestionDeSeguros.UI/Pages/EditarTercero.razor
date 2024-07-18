@@ -1,0 +1,82 @@
+@page "/tercero/{Id:int?}"
+
+@inject ModificarTerceroUseCase ModificarTerceroUseCase
+@inject ObtenerTerceroUseCase ObtenerTerceroUseCase
+@inject NavigationManager Navegador
+@inject AgregarTerceroUseCase AgregarTerceroUseCase
+@inject ListarSiniestrosUseCase ListarSiniestrosUseCase
+
+@if (_esNuevoTercero)
+{
+    <h3>Agregando un nuevo Tercero</h3>
+}
+else
+{
+    <h3>Modificando Tercero</h3>
+}
+
+<Error @ref=_error />
+<input placeholder="Nombre" @bind="_tercero.Nombre" class="form-control">
+<input placeholder="Apellido" @bind="_tercero.Apellido" class="form-control">
+<input placeholder="Dni" @bind="_tercero.Dni" class="form-control">
+<input placeholder="Telefono" @bind="_tercero.Telefono" class="form-control">
+<input placeholder="Aseguradora" @bind="_tercero.Aseguradora" class="form-control">
+<select @bind="_tercero.SiniestroId" class="form-select">
+    <option value="0" selected hidden>Seleccione un siniestro</option>
+    @foreach (var siniestro in _siniestros)
+    {
+        <option value="@siniestro.Id">@siniestro.Id @siniestro.DireccionDelHecho @siniestro.DescripcionAccidente</option>
+    }
+</select>
+
+<button class="btn btn-primary" @onclick="Aceptar">Aceptar</button>
+
+@code {
+    Tercero _tercero = new Tercero("","","");
+    List<Siniestro> _siniestros = new List<Siniestro>();
+    [Parameter] public int? Id { get; set; }
+    bool _esNuevoTercero = true;
+    Error _error = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (Id != null)
+        {
+            var tercero_hallado = ObtenerTerceroUseCase.Ejecutar(Id.Value);
+            if (tercero_hallado != null)
+            {
+                _tercero = tercero_hallado;
+                _esNuevoTercero = false;
+            }
+        }
+    }
+
+    void Aceptar()
+    {
+        if((_tercero.Nombre != "") && (_tercero.Apellido != "") && (_tercero.Dni != "") && (_tercero.SiniestroId != 0))
+        {
+            _tercero.Telefono = _tercero.Telefono == "" ? "No tiene" : _tercero.Telefono;
+            _tercero.Aseguradora = _tercero.Aseguradora == "" ? "No tiene" : _tercero.Aseguradora;
+            if (_esNuevoTercero)
+            {
+                AgregarTerceroUseCase.Ejecutar(_tercero);
+            }
+            else
+            {
+                ModificarTerceroUseCase.Ejecutar(_tercero);
+            }
+            _tercero = new Tercero("","","");
+            Navegador.NavigateTo("terceros");
+        }
+        else
+        {
+            _error.Mensaje = "Hay campos vacios. Nombre, apellido, dni y id del siniestro son obligatorios.";
+            _error.Mostrar();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _siniestros = ListarSiniestrosUseCase.Ejecutar();
+    }
+}

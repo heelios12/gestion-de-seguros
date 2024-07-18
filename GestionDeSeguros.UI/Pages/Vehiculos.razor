@@ -1,0 +1,81 @@
+@page "/vehiculos"
+@inject EliminarVehiculoUseCase EliminarVehiculoUseCase
+@inject ListarVehiculosUseCase ListarVehiculosUseCase
+@inject NavigationManager Navegador
+
+<PageTitle>Vehiculos</PageTitle>
+
+<h1>Vehiculos</h1>
+
+<button class="btn btn-primary" @onclick="AgregarVehiculo">Agregar nuevo vehiculo</button>
+<h2>Listar</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>DOMINIO</th>
+            <th>MARCA</th>
+            <th>AÑO DE FABRICACION</th>
+            <th>ID DEL TITULAR</th>
+            <th>ACCION</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var vehiculo in _vehiculos)
+        {
+            <tr>
+                <td>@vehiculo.Id</td>
+                <td>@vehiculo.Dominio</td>
+                <td>@vehiculo.Marca</td>
+                <td>@vehiculo.AnioDeFabricacion</td>
+                <td>@vehiculo.TitularId</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="()=>ModificarVehiculo(vehiculo)">
+                        <span class="oi oi-pencil"></span>
+                    </button>
+
+                    <button class="btn btn-danger" @onclick="()=>ConfirmarEliminacion(vehiculo)">
+                        <span class="oi oi-trash"></span>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<Confirmacion @ref=_confirmacionEliminar OnConfirmado="Eliminar" />
+@code
+{
+    List<Vehiculo> _vehiculos = new List<Vehiculo>();
+    Vehiculo? _vehiculoSeleccionado = null;
+    Confirmacion _confirmacionEliminar = null!;
+
+    void Eliminar()
+    {
+        if (_vehiculoSeleccionado != null)
+        {
+            EliminarVehiculoUseCase.Ejecutar(_vehiculoSeleccionado.Id);
+            _vehiculos = ListarVehiculosUseCase.Ejecutar();
+        }
+    }
+
+    void ConfirmarEliminacion(Vehiculo vehiculo)
+    {    
+        _vehiculoSeleccionado = vehiculo;
+        _confirmacionEliminar.Mensaje = $"¿Estas seguro que quieres eliminar el vehiculo?";
+        _confirmacionEliminar.Mostrar();
+    }
+
+    protected override void OnInitialized()
+    {
+        _vehiculos = ListarVehiculosUseCase.Ejecutar();
+    }
+    void ModificarVehiculo(Vehiculo vehiculo)
+    {
+        Navegador.NavigateTo($"vehiculo/{vehiculo.Id}");
+    }
+    void AgregarVehiculo()
+    {
+        Navegador.NavigateTo($"vehiculo/");
+    }
+}

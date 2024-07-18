@@ -1,0 +1,78 @@
+@page "/vehiculo/{Id:int?}"
+
+@inject ModificarVehiculoUseCase ModificarVehiculoUseCase
+@inject ObtenerVehiculoUseCase ObtenerVehiculoUseCase
+@inject NavigationManager Navegador
+@inject AgregarVehiculoUseCase AgregarVehiculoUseCase
+@inject ListarTitularesUseCase ListarTitularesUseCase
+
+@if (_esNuevoVehiculo)
+{
+    <h3>Agregando un nuevo Vehiculo</h3>
+}
+else
+{
+    <h3>Modificando Vehiculo</h3>
+}
+
+<Error @ref=_error />
+<input placeholder="Dominio" @bind="_vehiculo.Dominio" class="form-control">
+<input placeholder="Marca" @bind="_vehiculo.Marca" class="form-control">
+<label>Año de Fabricacion:</label>
+<input @bind="_vehiculo.AnioDeFabricacion" class="form-control" type="number">
+<select @bind="_vehiculo.TitularId" class="form-select">
+    <option value="0" selected hidden>Seleccione el titular del vehiculo</option>
+    @foreach (var titular in _titulares)
+    {
+        <option value="@titular.Id">@titular.Id @titular.Nombre @titular.Apellido</option>
+    }
+</select>
+<button class="btn btn-primary" @onclick="Aceptar">Aceptar</button>
+
+@code {
+    Vehiculo _vehiculo = new Vehiculo("","",2000);
+    List<Titular> _titulares = new List<Titular>();
+    [Parameter] public int? Id { get; set; }
+    bool _esNuevoVehiculo = true;
+    Error _error = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (Id != null)
+        {
+            var vehiculo_hallado = ObtenerVehiculoUseCase.Ejecutar(Id.Value);
+            if (vehiculo_hallado != null)
+            {
+                _vehiculo = vehiculo_hallado;
+                _esNuevoVehiculo = false;
+            }
+        }
+    }
+
+    void Aceptar()
+    {
+        if((_vehiculo.Dominio != "") && (_vehiculo.Marca != "") && (_vehiculo.TitularId != 0))
+        {
+            if (_esNuevoVehiculo)
+            {
+                AgregarVehiculoUseCase.Ejecutar(_vehiculo);
+            }
+            else
+            {
+                ModificarVehiculoUseCase.Ejecutar(_vehiculo);
+            }
+            _vehiculo = new Vehiculo("","",2000);
+            Navegador.NavigateTo("vehiculos");
+        }
+        else
+        {
+            _error.Mensaje = "Todos los campos son obligatorios.";
+            _error.Mostrar();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _titulares = ListarTitularesUseCase.Ejecutar();
+    }
+}

@@ -1,0 +1,87 @@
+@page "/poliza/{Id:int?}"
+
+@inject ModificarPolizaUseCase ModificarPolizaUseCase
+@inject ObtenerPolizaUseCase ObtenerPolizaUseCase
+@inject NavigationManager Navegador
+@inject AgregarPolizaUseCase AgregarPolizaUseCase
+@inject ListarVehiculosUseCase ListarVehiculosUseCase
+
+@if (_esNuevoPoliza)
+{
+    <h3>Agregando una nueva Poliza</h3>
+}
+else
+{
+    <h3>Modificando la Poliza</h3>
+}
+
+<Error @ref=_error />
+<label>Valor Asegurado:</label>
+<input @bind="_poliza.ValorAsegurado" class="form-control">
+<input placeholder="Franquicia" @bind="_poliza.Franquicia" class="form-control">
+<label>Tipo de Cobertura:</label>
+<select @bind="_poliza.Cobertura" class="form-select">
+    <option value=@TipoCobertura.ResponsabilidadCivil selected>@TipoCobertura.ResponsabilidadCivil</option>
+    <option value=@TipoCobertura.TodoRiesgo>@TipoCobertura.TodoRiesgo</option>
+</select>
+<label>Fecha Inicio Vigencia:</label>
+<input @bind="_poliza.FechaInicioVigencia" class="form-control" type="date">
+<label>Fecha Fin Vigencia:</label>
+<input placeholder="Fecha Fin Vigencia" @bind="_poliza.FechaFinVigencia" class="form-control" type="date">
+<select @bind="_poliza.VehiculoId" class="form-select">
+    <option value="0" selected hidden>Seleccione un vehiculo</option>
+    @foreach (var vehiculo in _vehiculos)
+    {
+        <option value="@vehiculo.Id">@vehiculo.Id @vehiculo.Marca @vehiculo.Dominio</option>
+    }
+</select>
+
+<button class="btn btn-primary" @onclick="Aceptar">Aceptar</button>
+
+@code {
+    Poliza _poliza = new Poliza(0,0,DateTime.Now,DateTime.Now);
+    List<Vehiculo> _vehiculos = new List<Vehiculo>();
+    [Parameter] public int? Id { get; set; }
+    bool _esNuevoPoliza = true;
+    Error _error = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (Id != null)
+        {
+            var poliza_hallado = ObtenerPolizaUseCase.Ejecutar(Id.Value);
+            if (poliza_hallado != null)
+            {
+                _poliza = poliza_hallado;
+                _esNuevoPoliza = false;
+            }
+        }
+    }
+
+    void Aceptar()
+    {
+        if(_poliza.VehiculoId != 0)
+        {
+            _poliza.Franquicia = _poliza.Franquicia == "" ? "No tiene" : _poliza.Franquicia;
+            if (_esNuevoPoliza)
+            {
+                AgregarPolizaUseCase.Ejecutar(_poliza);
+            }
+            else
+            {
+                ModificarPolizaUseCase.Ejecutar(_poliza);
+            }
+            _poliza = new Poliza(0,0,DateTime.Now,DateTime.Now);
+            Navegador.NavigateTo("polizas");
+        }
+        else
+        {
+            _error.Mensaje = "Debe elegir un vehiculo.";
+            _error.Mostrar();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        _vehiculos = ListarVehiculosUseCase.Ejecutar();
+    }
+}

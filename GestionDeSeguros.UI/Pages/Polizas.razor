@@ -1,0 +1,85 @@
+@page "/polizas"
+@inject EliminarPolizaUseCase EliminarPolizaUseCase
+@inject ListarPolizasUseCase ListarPolizasUseCase
+@inject NavigationManager Navegador
+
+<PageTitle>Polizas</PageTitle>
+
+<h1>Polizas</h1>
+<button class="btn btn-primary" @onclick="AgregarPoliza">Agregar nueva poliza</button>
+
+<Confirmacion @ref=_confirmacionEliminar OnConfirmado="Eliminar" />
+<h2>Listar</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>VALOR ASEGURADO</th>
+            <th>FRANQUICIA</th>
+            <th>COBERTURA</th>
+            <th>FECHA INICIO VIGENCIA</th>
+            <th>FECHA FIN VIGENCIA</th>
+            <th>VEHICULO ASEGURADO</th>
+            <th>ACCION</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var poliza in _polizas)
+        {
+            <tr>
+                <td>@poliza.Id</td>
+                <td>@poliza.ValorAsegurado</td>
+                <td>@poliza.Franquicia</td>
+                <td>@poliza.Cobertura</td>
+                <td>@poliza.FechaInicioVigencia.ToString("MM/dd/yyyy")</td>
+                <td>@poliza.FechaFinVigencia.ToString("MM/dd/yyyy")</td>
+                <td>@poliza.VehiculoId</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="()=>ModificarPoliza(poliza)">
+                        <span class="oi oi-pencil"></span>
+                    </button>
+
+                    <button class="btn btn-danger" @onclick="()=>ConfirmarEliminacion(poliza)">
+                        <span class="oi oi-trash"></span>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code
+{
+    List<Poliza> _polizas = new List<Poliza>();
+    Poliza? _polizaSeleccionada = null;
+    Confirmacion _confirmacionEliminar = null!;
+
+    void Eliminar()
+    {
+        if (_polizaSeleccionada != null)
+        {
+            EliminarPolizaUseCase.Ejecutar(_polizaSeleccionada.Id);
+            _polizas = ListarPolizasUseCase.Ejecutar();
+        }
+    }
+
+    void ConfirmarEliminacion(Poliza poliza)
+    {    
+        _polizaSeleccionada = poliza;
+        _confirmacionEliminar.Mensaje = $"¿Estas seguro que quieres eliminar la poliza?";
+        _confirmacionEliminar.Mostrar();
+    }
+
+    protected override void OnInitialized()
+    {
+        _polizas = ListarPolizasUseCase.Ejecutar();
+    }
+    void ModificarPoliza(Poliza poliza)
+    {
+        Navegador.NavigateTo($"poliza/{poliza.Id}");
+    }
+    void AgregarPoliza()
+    {
+        Navegador.NavigateTo($"poliza/");
+    }
+}

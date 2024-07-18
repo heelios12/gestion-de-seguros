@@ -1,0 +1,84 @@
+@page "/siniestros"
+@inject EliminarSiniestroUseCase EliminarSiniestroUseCase
+@inject ListarSiniestrosUseCase ListarSiniestrosUseCase
+@inject NavigationManager Navegador
+
+<PageTitle>Siniestros</PageTitle>
+
+<h1>Siniestros</h1>
+
+<button class="btn btn-primary" @onclick="AgregarSiniestro">Agregar nuevo siniestro</button>
+
+<Confirmacion @ref=_confirmacionEliminar OnConfirmado="Eliminar" />
+<h2>Listar</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>FECHA INGRESO</th>
+            <th>FECHA OCURRENCIA</th>
+            <th>DIRECCION DEL HECHO</th>
+            <th>POLIZA</th>
+            <th>DESCRIPCION DEL ACCIDENTE</th>
+            <th>ACCION</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var siniestro in _siniestros)
+        {
+            <tr>
+                <td>@siniestro.Id</td>
+                <td>@siniestro.FechaIngreso</td>
+                <td>@siniestro.FechaOcurrencia.ToString("MM/dd/yyyy")</td>
+                <td>@siniestro.DireccionDelHecho</td>
+                <td>@siniestro.PolizaId</td>
+                <td>@siniestro.DescripcionAccidente</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="()=>ModificarSiniestro(siniestro)">
+                        <span class="oi oi-pencil"></span>
+                    </button>
+
+                    <button class="btn btn-danger" @onclick="()=>ConfirmarEliminacion(siniestro)">
+                        <span class="oi oi-trash"></span>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code
+{
+    List<Siniestro> _siniestros = new List<Siniestro>();
+    Siniestro? _siniestroSeleccionado = null;
+    Confirmacion _confirmacionEliminar = null!;
+
+    void Eliminar()
+    {
+        if (_siniestroSeleccionado != null)
+        {
+            EliminarSiniestroUseCase.Ejecutar(_siniestroSeleccionado.Id);
+            _siniestros = ListarSiniestrosUseCase.Ejecutar();
+        }
+    }
+
+    void ConfirmarEliminacion(Siniestro siniestro)
+    {    
+        _siniestroSeleccionado = siniestro;
+        _confirmacionEliminar.Mensaje = $"¿Estas seguro que quieres eliminar el siniestro?";
+        _confirmacionEliminar.Mostrar();
+    }
+
+    protected override void OnInitialized()
+    {
+        _siniestros = ListarSiniestrosUseCase.Ejecutar();
+    }
+    void ModificarSiniestro(Siniestro siniestro)
+    {
+        Navegador.NavigateTo($"siniestro/{siniestro.Id}");
+    }
+    void AgregarSiniestro()
+    {
+        Navegador.NavigateTo($"siniestro/");
+    }
+}

@@ -1,0 +1,87 @@
+@page "/titulares"
+@inject EliminarTitularUseCase EliminarTitularUseCase
+@inject ListarTitularesUseCase ListarTitularesUseCase
+@inject NavigationManager Navegador
+
+<PageTitle>Titulares</PageTitle>
+
+<h1>Titulares</h1>
+
+<button class="btn btn-primary" @onclick="AgregarTitular">Agregar nuevo titular</button>
+
+<Confirmacion @ref=_confirmacionEliminar OnConfirmado="Eliminar" />
+<h2>Listar</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>NOMBRE</th>
+            <th>APELLIDO</th>
+            <th>DNI</th>
+            <th>TELEFONO</th>
+            <th>DIRECCION</th>
+            <th>CORREO ELECTRONICO</th>
+            <th>ACCION</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var titular in _titulares)
+        {
+            <tr>
+                <td>@titular.Id</td>
+                <td>@titular.Nombre</td>
+                <td>@titular.Apellido</td>
+                <td>@titular.Dni</td>
+                <td>@titular.Telefono</td>
+                <td>@titular.Direccion</td>
+                <td>@titular.CorreoElectronico</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="()=>ModificarTitular(titular)">
+                        <span class="oi oi-pencil"></span>
+                    </button>
+
+                    <button class="btn btn-danger" @onclick="()=>ConfirmarEliminacion(titular)">
+                        <span class="oi oi-trash"></span>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+@code
+{
+    List<Titular> _titulares = new List<Titular>();
+    Titular? _titularSeleccionado = null;
+    Confirmacion _confirmacionEliminar = null!;
+
+    void Eliminar()
+    {
+        if (_titularSeleccionado != null)
+        {
+            EliminarTitularUseCase.Ejecutar(_titularSeleccionado.Id);
+            _titulares = ListarTitularesUseCase.Ejecutar();
+        }
+    }
+
+    void ConfirmarEliminacion(Titular titular)
+    {    
+        _titularSeleccionado = titular;
+        _confirmacionEliminar.Mensaje = $"¿Estas seguro que quieres eliminar a {titular.Nombre} {titular.Apellido}?";
+        _confirmacionEliminar.Mostrar();
+    }
+
+    protected override void OnInitialized()
+    {
+        _titulares = ListarTitularesUseCase.Ejecutar();
+    }
+    void ModificarTitular(Titular titular)
+    {
+        Navegador.NavigateTo($"titular/{titular.Id}");
+    }
+    void AgregarTitular()
+    {
+        Navegador.NavigateTo($"titular/");
+    }
+}

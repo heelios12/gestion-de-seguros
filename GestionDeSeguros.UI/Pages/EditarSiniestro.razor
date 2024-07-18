@@ -1,0 +1,89 @@
+@page "/siniestro/{Id:int?}"
+
+@inject ModificarSiniestroUseCase ModificarSiniestroUseCase
+@inject ObtenerSiniestroUseCase ObtenerSiniestroUseCase
+@inject NavigationManager Navegador
+@inject AgregarSiniestroUseCase AgregarSiniestroUseCase
+@inject ObtenerPolizaUseCase ObtenerPolizaUseCase
+@inject ListarPolizasUseCase ListarPolizasUseCase
+
+@if (_esNuevoSiniestro)
+{
+    <h3>Agregando un nuevo Siniestro</h3>
+}
+else
+{
+    <h3>Modificando Siniestro</h3>
+}
+<Error @ref=_error />
+<label>Fecha de Ocurrencia:</label>
+<input @bind="_siniestro.FechaOcurrencia" class="form-control" type="date">
+<input placeholder="Direccion del hecho" @bind="_siniestro.DireccionDelHecho" class="form-control">
+<input placeholder="Descripcion del accidente" @bind="_siniestro.DescripcionAccidente" class="form-control">
+<select @bind="_siniestro.PolizaId" class="form-select">
+    <option value="0" selected hidden>Seleccione una poliza</option>
+    @foreach (var poliza in _polizas)
+    {
+        <option value="@poliza.Id">@poliza.Id @poliza.Franquicia @poliza.Cobertura</option>
+    }
+</select>
+<button class="btn btn-primary" @onclick="Aceptar">Aceptar</button>
+
+@code {
+    Siniestro _siniestro = new Siniestro();
+    List<Poliza> _polizas = new List<Poliza>();
+    [Parameter] public int? Id { get; set; }
+    bool _esNuevoSiniestro = true;
+    Error _error = null!;
+    
+    protected override void OnParametersSet()
+    {
+        if (Id != null)
+        {
+            var siniestro_hallado = ObtenerSiniestroUseCase.Ejecutar(Id.Value);
+            if (siniestro_hallado != null)
+            {
+                _siniestro = siniestro_hallado;
+                _esNuevoSiniestro = false;
+            }
+        }
+    }
+
+    void Aceptar()
+    {
+        Poliza? _poliza = ObtenerPolizaUseCase.Ejecutar(_siniestro.PolizaId);
+        if(_poliza != null)
+        {
+            if ((_poliza.FechaInicioVigencia <= _siniestro.FechaOcurrencia) && (_poliza.FechaFinVigencia >= _siniestro.FechaOcurrencia))
+            {
+                _siniestro.DireccionDelHecho = _siniestro.DireccionDelHecho == "" ? "No tiene" : _siniestro.DireccionDelHecho;
+                _siniestro.DescripcionAccidente = _siniestro.DescripcionAccidente == "" ? "No tiene" : _siniestro.DescripcionAccidente;
+                if (_esNuevoSiniestro)
+                {
+                    AgregarSiniestroUseCase.Ejecutar(_siniestro);
+                }
+                else
+                {
+                    ModificarSiniestroUseCase.Ejecutar(_siniestro);
+                }
+                _siniestro = new Siniestro();
+                Navegador.NavigateTo("siniestros");
+            }
+            else
+            {
+                _error.Mensaje = $"La fecha del siniestro no esta en el rango de la fecha de la poliza. Debe ser entre el {_poliza.FechaInicioVigencia.ToString("MM/dd/yyyy")} y {_poliza.FechaFinVigencia.ToString("MM/dd/yyyy")}.";
+                _error.Mostrar();
+            }
+        }
+        else
+        {
+            _error.Mensaje = "Seleccione un id de la poliza.";
+            _error.Mostrar();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _polizas = ListarPolizasUseCase.Ejecutar();
+    }
+}

@@ -1,0 +1,79 @@
+@page "/titular/{Id:int?}"
+
+@inject ModificarTitularUseCase ModificarTitularUseCase
+@inject ObtenerTitularUseCase ObtenerTitularUseCase
+@inject ObtenerTitularPorDniUseCase ObtenerTitularPorDniUseCase
+@inject NavigationManager Navegador
+@inject AgregarTitularUseCase AgregarTitularUseCase
+
+@if (_esNuevoTitular)
+{
+    <h3>Agregando un nuevo Titular</h3>
+}
+else
+{
+    <h3>Modificando al Titular "@_titular.Nombre @_titular.Apellido"</h3>
+}
+
+<Error @ref=_error />
+<input placeholder="Nombre" @bind="_titular.Nombre" class="form-control">
+<input placeholder="Apellido" @bind="_titular.Apellido" class="form-control">
+<input placeholder="Dni" @bind="_titular.Dni" class="form-control">
+<input placeholder="Telefono" @bind="_titular.Telefono" class="form-control">
+<input placeholder="Direccion" @bind="_titular.Direccion" class="form-control">
+<input placeholder="Correo Electronico" @bind="_titular.CorreoElectronico" class="form-control">
+<button class="btn btn-primary" @onclick="Aceptar">Aceptar</button>
+
+@code {
+    Titular _titular = new Titular("", "", "");
+    [Parameter] public int? Id { get; set; }
+    bool _esNuevoTitular = true;
+    Error _error = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (Id != null)
+        {
+            var titular_hallado = ObtenerTitularUseCase.Ejecutar(Id.Value);
+            if (titular_hallado != null)
+            {
+                _titular = titular_hallado;
+                _esNuevoTitular = false;
+            }
+        }
+    }
+
+    void Aceptar()
+    {
+        if((_titular.Nombre != "") && (_titular.Apellido != "") && (_titular.Dni != ""))
+        {
+            var titularConMismoDni = ObtenerTitularPorDniUseCase.Ejecutar(_titular.Dni);
+            if(titularConMismoDni == null || titularConMismoDni.Id == _titular.Id)
+            {
+                _titular.Telefono = _titular.Telefono == "" ? "No tiene" : _titular.Telefono;
+                _titular.Direccion = _titular.Direccion == "" ? "No tiene" : _titular.Direccion;
+                _titular.CorreoElectronico = _titular.CorreoElectronico == "" ? "No tiene" : _titular.CorreoElectronico;
+                if (_esNuevoTitular)
+                {
+                    AgregarTitularUseCase.Ejecutar(_titular);
+                }
+                else
+                {
+                    ModificarTitularUseCase.Ejecutar(_titular);
+                }
+                _titular = new Titular("", "", "");
+                Navegador.NavigateTo("titulares");
+            }
+            else
+            {
+                _error.Mensaje = "Ya existe un titular con ese DNI.";
+                _error.Mostrar();
+            }
+        }
+        else
+        {
+            _error.Mensaje = "Hay campos vacios. Nombre, apellido y dni son obligatorios.";
+            _error.Mostrar();
+        }
+    }
+}
